@@ -6,6 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+  issues: write
+
 jobs:
   build:
     name: assembleDebug
@@ -46,14 +50,19 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           grep -E "^e: |error:|FAILURE|What went wrong|Execution failed|Caused by" build.log | head -n 150 >> "$GITHUB_STEP_SUMMARY" || tail -n 150 build.log >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          # Also open an issue with the excerpt so the failure is inspectable via the API.
+          # Also publish the excerpt on a ci-logs branch so the failure is inspectable.
           {
             echo "Gradle build failed for commit $GITHUB_SHA (run $GITHUB_RUN_ID)."
             echo '```'
-            grep -E "^e: |error:|FAILURE|What went wrong|Execution failed|Caused by" build.log | head -n 150 || tail -n 150 build.log
+            grep -E "^e: |error:|FAILURE|What went wrong|Execution failed|Caused by" build.log | head -n 200 || tail -n 200 build.log
             echo '```'
-          } > issue.md
-          gh issue create --title "CI build failure ${GITHUB_SHA:0:7}" --body-file issue.md || true
+          } > BUILD_ERRORS.md
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git checkout --orphan ci-logs-tmp
+          git add -f BUILD_ERRORS.md
+          git commit -m "CI build errors for ${GITHUB_SHA:0:7} [skip ci]"
+          git push -f origin HEAD:refs/heads/ci-logs || true
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
