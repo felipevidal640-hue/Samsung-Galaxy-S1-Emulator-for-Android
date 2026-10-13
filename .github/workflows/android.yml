@@ -21,14 +21,29 @@ jobs:
           java-version: "17"
           cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # GitHub's ubuntu runners ship with the Android SDK preinstalled
+      # (ANDROID_HOME), including platform 34 and build-tools.
+      - name: Show Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls "$ANDROID_HOME/platforms" || true
+          ls "$ANDROID_HOME/build-tools" || true
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug --stacktrace 2>&1 | tee build.log
+
+      - name: Publish build errors
+        if: failure()
+        run: |
+          echo '## Gradle build failure' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -E "^e: |error:|FAILURE|What went wrong|Execution failed|Caused by" build.log | head -n 120 >> "$GITHUB_STEP_SUMMARY" || tail -n 120 build.log >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
