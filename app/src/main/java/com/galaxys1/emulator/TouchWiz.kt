@@ -428,6 +428,7 @@ fun HomeScreen(state: EmulatorState) {
                             )
                         }
                 ) {
+                    val pageBoxWidth = maxWidth
                     Row(
                         modifier = Modifier
                             .fillMaxSize()
@@ -436,7 +437,7 @@ fun HomeScreen(state: EmulatorState) {
                         HOME_PAGES.forEachIndexed { page, ids ->
                             Box(
                                 modifier = Modifier
-                                    .width(maxWidth)
+                                    .width(pageBoxWidth)
                                     .fillMaxSize()
                                     .padding(horizontal = 8.dp, vertical = 8.dp)
                             ) {
